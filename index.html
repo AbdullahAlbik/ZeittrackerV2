@@ -1,0 +1,1877 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arbeitszeit – Daily Tracker (Fiori-Look + Login)</title>
+  <style>
+    :root{
+      --sapBrandColor:#0A6ED1;
+      --sapHighlightColor:#0854A0;
+      --sapBaseColor:#F7F7F7;
+      --sapTileBg:#FFFFFF;
+      --sapTextColor:#32363A;
+      --sapMutedText:#6A6D70;
+      --sapBorderColor:#D9D9D9;
+      --sapShadow: 0 1px 2px rgba(0,0,0,.08);
+      --sapRadius: 10px;
+      --sapFocus: 0 0 0 2px rgba(10,110,209,.25);
+      --sapDanger:#BB0000;
+
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--font);
+      color: var(--sapTextColor);
+      background: var(--sapBaseColor);
+    }
+
+    /* Shellbar */
+    .shellbar{
+      position: sticky;
+      top:0;
+      z-index: 10;
+      height: 52px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding: 0 16px;
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--sapBorderColor);
+    }
+    .shellbar__brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 260px;
+    }
+    .logo{
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--sapBrandColor), #3AA0FF);
+      box-shadow: var(--sapShadow);
+      flex: 0 0 auto;
+    }
+    .shellbar__title{
+      display:flex;
+      flex-direction:column;
+      line-height:1.1;
+    }
+    .shellbar__title strong{
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .shellbar__title span{
+      font-size: 12px;
+      color: var(--sapMutedText);
+    }
+    .shellbar__spacer{ flex:1; }
+    .shellbar__actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    /* Page layout */
+    .page{
+      max-width: 1200px;
+      margin: 16px auto 28px;
+      padding: 0 16px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media(min-width: 1020px){
+      .page{
+        grid-template-columns: 1.05fr .95fr;
+        align-items:start;
+      }
+    }
+
+    /* Card */
+    .card{
+      background: var(--sapTileBg);
+      border: 1px solid var(--sapBorderColor);
+      border-radius: var(--sapRadius);
+      box-shadow: var(--sapShadow);
+      overflow:hidden;
+    }
+    .card__header{
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid rgba(217,217,217,.65);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+    }
+    .card__header h2{
+      margin:0;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+    .card__header .hint{
+      margin:0;
+      font-size: 12px;
+      color: var(--sapMutedText);
+    }
+    .card__body{
+      padding: 14px 16px 16px;
+    }
+
+    /* Forms */
+    .row{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    @media(min-width: 720px){
+      .row.cols-2{ grid-template-columns: 1fr 1fr; }
+      .row.cols-3{ grid-template-columns: 1fr 1fr 1fr; }
+      .row.cols-4{ grid-template-columns: 1fr 1fr 1fr 1fr; }
+    }
+    label{
+      display:block;
+      font-size: 12px;
+      color: var(--sapMutedText);
+      margin-bottom: 6px;
+    }
+    input, select, textarea{
+      width:100%;
+      border: 1px solid var(--sapBorderColor);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 13px;
+      background:#fff;
+      color: var(--sapTextColor);
+      outline:none;
+      transition: box-shadow .12s, border-color .12s;
+    }
+    textarea{ min-height: 62px; resize: vertical; }
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(10,110,209,.55);
+      box-shadow: var(--sapFocus);
+    }
+    input[type="number"]{ font-family: var(--mono); }
+
+    /* Buttons */
+    .btns{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top: 8px;
+    }
+    .btn{
+      border: 1px solid var(--sapBorderColor);
+      background: #fff;
+      color: var(--sapTextColor);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor:pointer;
+      transition: background .12s, border-color .12s, box-shadow .12s;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+    }
+    .btn:hover{ background:#F5F6F7; }
+    .btn:focus{ outline:none; box-shadow: var(--sapFocus); }
+    .btn--emphasized{
+      background: var(--sapBrandColor);
+      border-color: var(--sapBrandColor);
+      color:#fff;
+    }
+    .btn--emphasized:hover{ background: var(--sapHighlightColor); border-color: var(--sapHighlightColor); }
+    .btn--negative{
+      background:#fff;
+      border-color: rgba(187,0,0,.35);
+      color: var(--sapDanger);
+    }
+    .btn--negative:hover{ background: rgba(187,0,0,.06); }
+    .btn[disabled]{ opacity:.55; cursor:not-allowed; }
+
+    .icon{
+      width: 14px;
+      height: 14px;
+      display:inline-block;
+    }
+
+    /* KPI tiles */
+    .kpis{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    @media(min-width: 720px){
+      .kpis{ grid-template-columns: 1fr 1fr 1fr 1fr; }
+    }
+    .kpi{
+      border: 1px solid var(--sapBorderColor);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fff;
+    }
+    .kpi .t{
+      font-size: 12px;
+      color: var(--sapMutedText);
+      margin-bottom: 6px;
+    }
+    .kpi .v{
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing:.2px;
+    }
+    .kpi .s{
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--sapMutedText);
+    }
+    .kpi .s.strong{
+      color: var(--sapTextColor);
+      font-weight: 700;
+    }
+
+    /* Adjustments */
+    .section-split{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed rgba(217,217,217,.85);
+    }
+    .adj-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .adj-head .title{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .adj-head .title strong{
+      font-size: 13px;
+    }
+    .adj-head .title span{
+      font-size: 12px;
+      color: var(--sapMutedText);
+    }
+    .adj-list{ display:grid; gap: 10px; }
+    .adj-item{
+      border: 1px solid var(--sapBorderColor);
+      border-radius: 10px;
+      padding: 10px 10px 6px;
+      background: #fff;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media(min-width: 720px){
+      .adj-item{
+        grid-template-columns: 120px 150px 240px 1fr 44px;
+        align-items:end;
+      }
+    }
+    .icon-btn{
+      width: 44px;
+      justify-content:center;
+      padding: 9px 0;
+    }
+
+    /* Table */
+    table{
+      width:100%;
+      border-collapse: collapse;
+      border: 1px solid var(--sapBorderColor);
+      border-radius: 10px;
+      overflow:hidden;
+      background:#fff;
+      margin-top: 12px;
+    }
+    thead{
+      background: #FAFAFA;
+      border-bottom: 1px solid var(--sapBorderColor);
+    }
+    th, td{
+      padding: 10px 10px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(217,217,217,.65);
+      text-align:left;
+      white-space:nowrap;
+      vertical-align:top;
+    }
+    tbody tr:hover{ background:#F7FAFF; }
+    td.right{ text-align:right; font-family: var(--mono); }
+    td.wrap{ white-space:normal; }
+    .pill{
+      display:inline-block;
+      padding: 2px 8px;
+      margin: 2px 6px 0 0;
+      border: 1px solid rgba(217,217,217,.85);
+      border-radius: 999px;
+      font-size: 12px;
+      background:#fff;
+      color: var(--sapTextColor);
+    }
+    .muted{ color: var(--sapMutedText); }
+    .note{
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--sapMutedText);
+      line-height: 1.35;
+    }
+
+    /* Small toolbar in shellbar */
+    .shell-input{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 8px;
+      border: 1px solid var(--sapBorderColor);
+      border-radius: 8px;
+      background:#fff;
+    }
+    .shell-input label{
+      margin:0;
+      font-size:12px;
+      color: var(--sapMutedText);
+    }
+    .shell-input input{
+      border:none;
+      padding: 0;
+      font-size: 13px;
+      width: 140px;
+    }
+    .shell-input input:focus{ box-shadow:none; }
+
+    /* Dialog / Overlay */
+    .overlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.35);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+      z-index: 50;
+    }
+    .overlay.show{ display:flex; }
+    .dialog{
+      width: min(720px, 100%);
+      background: #fff;
+      border: 1px solid var(--sapBorderColor);
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .dialog__header{
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid rgba(217,217,217,.65);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .dialog__header strong{ font-size: 14px; }
+    .dialog__body{ padding: 14px 16px 16px; }
+    .tabs{
+      display:flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab{
+      border: 1px solid var(--sapBorderColor);
+      background:#fff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor:pointer;
+    }
+    .tab.active{
+      border-color: rgba(10,110,209,.5);
+      box-shadow: var(--sapFocus);
+    }
+    .error{
+      margin: 8px 0 0;
+      color: var(--sapDanger);
+      font-size: 12px;
+      min-height: 16px;
+    }
+    .ok{
+      margin: 8px 0 0;
+      color: #107E3E;
+      font-size: 12px;
+      min-height: 16px;
+    }
+
+    .mini{
+      font-size: 12px;
+      color: var(--sapMutedText);
+      line-height: 1.35;
+    }
+
+    /* Simple dropdown */
+    .dropdown{
+      position: relative;
+      display:inline-block;
+    }
+    .menu{
+      position:absolute;
+      right:0;
+      top: calc(100% + 6px);
+      width: 260px;
+      background:#fff;
+      border: 1px solid var(--sapBorderColor);
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.14);
+      padding: 6px;
+      display:none;
+      z-index: 20;
+    }
+    .menu.show{ display:block; }
+    .menu button{
+      width: 100%;
+      justify-content:flex-start;
+    }
+    .menu .sep{
+      height:1px;
+      background: rgba(217,217,217,.75);
+      margin: 6px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="shellbar">
+    <div class="shellbar__brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div class="shellbar__title">
+        <strong>Arbeitszeit</strong>
+        <span>Daily Tracker (Fiori-Look, pro User lokal gespeichert)</span>
+      </div>
+    </div>
+
+    <div class="shellbar__spacer"></div>
+
+    <div class="shellbar__actions">
+      <div class="shell-input" title="Woche anzeigen">
+        <label for="weekRef">Woche</label>
+        <input id="weekRef" type="date" />
+      </div>
+
+      <button class="btn" id="exportJsonBtn" type="button" title="Export JSON">
+        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1l3 3H9v5H7V4H5l3-3zm-5 9h10v3H3v-3zm-1 0v4h12v-4H2z"/></svg>
+        Export
+      </button>
+
+      <label class="btn" style="margin:0;" title="Import JSON (in aktuellen User)">
+        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 15l-3-3h2V7h2v5h2l-3 3zM3 2h10v3H3V2zm-1 0v4h12V2H2z"/></svg>
+        Import
+        <input id="importJson" type="file" accept="application/json" style="display:none;" />
+      </label>
+
+      <button class="btn" id="exportCsvBtn" type="button" title="CSV Export">
+        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3 2h7l3 3v9H3V2zm7 1v3h3"/></svg>
+        CSV
+      </button>
+
+      <div class="dropdown">
+        <button class="btn" id="userBtn" type="button" title="Benutzer">
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 8a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 1c-3 0-5 1.5-5 3v1h10v-1c0-1.5-2-3-5-3z"/></svg>
+          <span id="userBtnText">Nicht angemeldet</span>
+        </button>
+        <div class="menu" id="userMenu">
+          <button class="btn" type="button" id="openUserMgmtBtn">Nutzerverwaltung</button>
+          <button class="btn" type="button" id="changePwBtn">Passwort ändern</button>
+          <div class="sep"></div>
+          <button class="btn btn--negative" type="button" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <!-- Left: Day Entry -->
+    <section class="card">
+      <div class="card__header">
+        <div>
+          <h2>Tages-Eintrag</h2>
+          <p class="hint">Berechnungen sofort, Speicherung pro User lokal im Browser.</p>
+        </div>
+        <div class="btns" style="margin:0;">
+          <button class="btn btn--emphasized" id="saveBtn" type="button">Speichern</button>
+          <button class="btn" id="newBtn" type="button">Neu</button>
+          <button class="btn btn--negative" id="deleteBtn" type="button" disabled>Löschen</button>
+        </div>
+      </div>
+
+      <div class="card__body">
+        <div class="row cols-4">
+          <div>
+            <label for="date">Datum</label>
+            <input id="date" type="date" />
+          </div>
+          <div>
+            <label for="start">Start</label>
+            <input id="start" type="time" step="60" />
+          </div>
+          <div>
+            <label for="end">Ende</label>
+            <input id="end" type="time" step="60" />
+          </div>
+          <div>
+            <label for="breakMin">Pause (Minuten)</label>
+            <input id="breakMin" type="number" min="0" step="5" value="30" />
+          </div>
+        </div>
+
+        <div class="row cols-3">
+          <div>
+            <label for="dailyTargetH">Tagessoll (Std) – Netto</label>
+            <input id="dailyTargetH" type="number" min="0" step="0.25" value="8" />
+          </div>
+          <div>
+            <label for="weeklyTargetH">Wochensoll (Std)</label>
+            <input id="weeklyTargetH" type="number" min="0" step="0.5" value="40" />
+          </div>
+          <div>
+            <label for="note">Tagesnotiz</label>
+            <input id="note" type="text" placeholder="Optional" />
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Anwesenheit</div>
+            <div class="v" id="kPresence">–</div>
+            <div class="s">Ende − Start</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Netto gearbeitet</div>
+            <div class="v" id="kNet">–</div>
+            <div class="s">Anwesenheit − Pause</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Anpassungen (Saldo)</div>
+            <div class="v" id="kAdj">–</div>
+            <div class="s" id="kAbs">Abwesenheit (anrechenbar): –</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Anrechenbar</div>
+            <div class="v" id="kCredit">–</div>
+            <div class="s strong" id="kDiff">Abweichung: –</div>
+          </div>
+        </div>
+
+        <div class="row cols-2" style="margin-top:12px;">
+          <div class="kpi">
+            <div class="t">Voraussichtliches Arbeitsende (für Tagessoll)</div>
+            <div class="v" id="kPredEnd">–</div>
+            <div class="s">Start + Pause + (Soll − Anpassungen)</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Hinweis</div>
+            <div class="s">Wenn Ende vor Start liegt, wird automatisch der nächste Tag angenommen (Nachtschicht).</div>
+          </div>
+        </div>
+
+        <div class="section-split">
+          <div class="adj-head">
+            <div class="title">
+              <strong>Zu-/Abzüge</strong>
+              <span>z. B. externe Schulung (anrechenbare Abwesenheit), Korrekturen, Reisezeit</span>
+            </div>
+            <button class="btn" id="addAdjBtn" type="button">+ Eintrag</button>
+          </div>
+          <div id="adjList" class="adj-list"></div>
+        </div>
+
+        <p class="note">
+          Hinweis: Login & Daten sind lokal (pro Browser). Für echte Multi-User über Geräte brauchst du ein Backend.
+        </p>
+      </div>
+    </section>
+
+    <!-- Right: Week & History -->
+    <section class="card">
+      <div class="card__header">
+        <div>
+          <h2>Woche & Historie</h2>
+          <p class="hint">Wochensummen basieren auf dem im Header ausgewählten Datum.</p>
+        </div>
+        <div class="kpi" style="min-width: 240px; padding: 10px 12px;">
+          <div class="t">Wochensaldo</div>
+          <div class="v" id="kWeek">–</div>
+          <div class="s" id="kWeekS">Soll: –</div>
+        </div>
+      </div>
+
+      <div class="card__body">
+        <div class="kpis" style="margin-top:0;">
+          <div class="kpi">
+            <div class="t">Netto gearbeitet</div>
+            <div class="v" id="kWeekNet">–</div>
+            <div class="s">Summe ohne Pausen</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Abwesenheit (anrechenbar)</div>
+            <div class="v" id="kWeekAbs">–</div>
+            <div class="s">Schulung/Urlaub/Krank</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Anpassungen (sonstige)</div>
+            <div class="v" id="kWeekAdj">–</div>
+            <div class="s">Korrekturen etc.</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Anrechenbar gesamt</div>
+            <div class="v" id="kWeekCredit">–</div>
+            <div class="s">Netto + Anpassungen</div>
+          </div>
+        </div>
+
+        <table aria-label="Historie">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Start</th>
+              <th>Ende</th>
+              <th class="right">Pause</th>
+              <th class="right">Netto</th>
+              <th class="right">Anpassungen</th>
+              <th class="right">Anrechenbar</th>
+              <th class="right">Δ Tag</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+
+        <p class="note">Tipp: „Bearbeiten“ lädt den Tag in das Formular.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Auth Overlay -->
+  <div class="overlay" id="authOverlay" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-label="Login">
+      <div class="dialog__header">
+        <strong>Login</strong>
+        <button class="btn" id="authCloseBtn" type="button" title="Schließen">Schließen</button>
+      </div>
+      <div class="dialog__body">
+        <div class="tabs">
+          <button class="tab active" id="tabLogin" type="button">Login</button>
+          <button class="tab" id="tabRegister" type="button">Registrieren</button>
+        </div>
+
+        <div id="loginPane">
+          <div class="row cols-2">
+            <div>
+              <label for="loginUser">Benutzername</label>
+              <input id="loginUser" autocomplete="username" />
+            </div>
+            <div>
+              <label for="loginPw">Passwort</label>
+              <input id="loginPw" type="password" autocomplete="current-password" />
+            </div>
+          </div>
+          <div class="btns">
+            <button class="btn btn--emphasized" id="loginBtn" type="button">Anmelden</button>
+          </div>
+          <div class="error" id="loginErr"></div>
+          <p class="mini">
+            Hinweis: Das ist ein lokales Login (Browser). Für echte Nutzerkonten über mehrere Geräte ist ein Backend nötig.
+          </p>
+        </div>
+
+        <div id="registerPane" style="display:none;">
+          <div class="row cols-3">
+            <div>
+              <label for="regUser">Benutzername</label>
+              <input id="regUser" autocomplete="username" placeholder="z. B. max" />
+            </div>
+            <div>
+              <label for="regName">Anzeigename</label>
+              <input id="regName" placeholder="z. B. Max Mustermann" />
+            </div>
+            <div>
+              <label for="regPw">Passwort</label>
+              <input id="regPw" type="password" autocomplete="new-password" />
+            </div>
+          </div>
+          <div class="btns">
+            <button class="btn btn--emphasized" id="registerBtn" type="button">Account anlegen</button>
+          </div>
+          <div class="error" id="regErr"></div>
+          <div class="ok" id="regOk"></div>
+          <p class="mini">Der erste registrierte Benutzer wird automatisch als Admin markiert.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Mgmt Dialog -->
+  <div class="overlay" id="userMgmtOverlay" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-label="Nutzerverwaltung">
+      <div class="dialog__header">
+        <strong>Nutzerverwaltung</strong>
+        <button class="btn" id="userMgmtCloseBtn" type="button">Schließen</button>
+      </div>
+      <div class="dialog__body">
+        <p class="mini" id="userMgmtHint"></p>
+
+        <div class="card" style="margin: 10px 0 12px;">
+          <div class="card__header">
+            <h2>Benutzer</h2>
+            <p class="hint">Lokal gespeichert</p>
+          </div>
+          <div class="card__body">
+            <div id="usersList" class="row" style="gap:10px; margin:0;"></div>
+          </div>
+        </div>
+
+        <div class="card" id="adminCreateUserCard" style="display:none;">
+          <div class="card__header">
+            <h2>Neuen Benutzer anlegen (Admin)</h2>
+            <p class="hint">Erstellt lokal einen neuen Account</p>
+          </div>
+          <div class="card__body">
+            <div class="row cols-3">
+              <div>
+                <label for="adminNewUser">Benutzername</label>
+                <input id="adminNewUser" />
+              </div>
+              <div>
+                <label for="adminNewName">Anzeigename</label>
+                <input id="adminNewName" />
+              </div>
+              <div>
+                <label for="adminNewPw">Passwort</label>
+                <input id="adminNewPw" type="password" />
+              </div>
+            </div>
+            <div class="btns">
+              <button class="btn btn--emphasized" id="adminCreateUserBtn" type="button">Anlegen</button>
+            </div>
+            <div class="error" id="adminCreateErr"></div>
+            <div class="ok" id="adminCreateOk"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="card__header">
+            <h2>Eigenes Passwort ändern</h2>
+            <p class="hint">Aktueller User</p>
+          </div>
+          <div class="card__body">
+            <div class="row cols-3">
+              <div>
+                <label for="pwOld">Altes Passwort</label>
+                <input id="pwOld" type="password" autocomplete="current-password" />
+              </div>
+              <div>
+                <label for="pwNew">Neues Passwort</label>
+                <input id="pwNew" type="password" autocomplete="new-password" />
+              </div>
+              <div>
+                <label for="pwNew2">Neues Passwort (Wdh.)</label>
+                <input id="pwNew2" type="password" autocomplete="new-password" />
+              </div>
+            </div>
+            <div class="btns">
+              <button class="btn btn--emphasized" id="pwChangeBtn" type="button">Ändern</button>
+            </div>
+            <div class="error" id="pwErr"></div>
+            <div class="ok" id="pwOk"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  /* ----------------------------
+     STORAGE KEYS
+     ---------------------------- */
+  const USERS_KEY   = "wt_users_v1";
+  const SESSION_KEY = "wt_session_v1";
+  const DATA_KEY    = "wt_data_v2"; // entries pro User
+
+  /* ----------------------------
+     DOM helpers
+     ---------------------------- */
+  const $ = (id) => document.getElementById(id);
+
+  /* ----------------------------
+     Date/time helpers
+     ---------------------------- */
+  function todayISO() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0,10);
+  }
+  function parseHHMM(s) {
+    if (!s || typeof s !== "string") return null;
+    const m = s.match(/^(\d{2}):(\d{2})$/);
+    if (!m) return null;
+    const hh = Number(m[1]), mm = Number(m[2]);
+    if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+    return hh * 60 + mm;
+  }
+  function fmtHHMMFromMin(min) {
+    if (min == null || !isFinite(min)) return "–";
+    min = Math.round(min);
+    min = ((min % (24*60)) + (24*60)) % (24*60);
+    const hh = String(Math.floor(min/60)).padStart(2, "0");
+    const mm = String(min%60).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+  function fmtDur(min) {
+    if (min == null || !isFinite(min)) return "–";
+    const sign = min < 0 ? "-" : "";
+    min = Math.abs(Math.round(min));
+    const hh = Math.floor(min / 60);
+    const mm = min % 60;
+    return `${sign}${hh}:${String(mm).padStart(2, "0")} h`;
+  }
+  function clampNum(v, def=0) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : def;
+  }
+  function isoWeekStart(dateISO) {
+    const d = new Date(dateISO + "T00:00:00");
+    const day = d.getDay(); // 0=Sun..6=Sat
+    const diffToMon = (day === 0 ? -6 : 1) - day;
+    d.setDate(d.getDate() + diffToMon);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  function addDays(d, days) {
+    const x = new Date(d);
+    x.setDate(x.getDate() + days);
+    return x;
+  }
+  function dateToISO(d) {
+    const x = new Date(d);
+    x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
+    return x.toISOString().slice(0,10);
+  }
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function download(filename, text, mime="text/plain") {
+    const blob = new Blob([text], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  /* ----------------------------
+     Users: WebCrypto PBKDF2
+     ---------------------------- */
+  function b64enc(bytes) {
+    let bin = "";
+    bytes.forEach(b => bin += String.fromCharCode(b));
+    return btoa(bin);
+  }
+  function b64dec(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i=0; i<bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+  function randomBytes(len=16) {
+    const a = new Uint8Array(len);
+    crypto.getRandomValues(a);
+    return a;
+  }
+  async function pbkdf2Hash(password, saltBytes, iterations=150000, bits=256) {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(password),
+      { name: "PBKDF2" },
+      false,
+      ["deriveBits"]
+    );
+    const derived = await crypto.subtle.deriveBits(
+      { name: "PBKDF2", salt: saltBytes, iterations, hash: "SHA-256" },
+      key,
+      bits
+    );
+    return new Uint8Array(derived);
+  }
+  function timingSafeEqual(a, b) {
+    if (a.length !== b.length) return false;
+    let x = 0;
+    for (let i=0; i<a.length; i++) x |= (a[i] ^ b[i]);
+    return x === 0;
+  }
+
+  function loadUsers() {
+    try {
+      const raw = localStorage.getItem(USERS_KEY);
+      const obj = raw ? JSON.parse(raw) : { users: [] };
+      if (!obj || !Array.isArray(obj.users)) return { users: [] };
+      return obj;
+    } catch { return { users: [] }; }
+  }
+  function saveUsers(obj) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(obj));
+  }
+  function loadSession() {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      const obj = raw ? JSON.parse(raw) : null;
+      if (!obj || !obj.userId) return null;
+      return obj;
+    } catch { return null; }
+  }
+  function saveSession(userId) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ userId, ts: Date.now() }));
+  }
+  function clearSession() {
+    localStorage.removeItem(SESSION_KEY);
+  }
+  function newId() {
+    return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(3);
+  }
+  function normalizeUsername(u) {
+    return (u || "").trim().toLowerCase();
+  }
+  function validateUsername(u) {
+    // 3..24, a-z 0-9 . _ -
+    return /^[a-z0-9._-]{3,24}$/.test(u);
+  }
+
+  async function registerUser(usernameRaw, displayNameRaw, password) {
+    const username = normalizeUsername(usernameRaw);
+    const displayName = (displayNameRaw || "").trim() || username;
+
+    if (!validateUsername(username)) throw new Error("Benutzername: 3–24 Zeichen, nur a-z, 0-9, . _ -");
+    if (!password || password.length < 8) throw new Error("Passwort muss mindestens 8 Zeichen haben.");
+
+    const store = loadUsers();
+    if (store.users.some(u => u.username === username)) throw new Error("Benutzername existiert bereits.");
+
+    const salt = randomBytes(16);
+    const hash = await pbkdf2Hash(password, salt);
+
+    const isFirst = store.users.length === 0;
+    const user = {
+      id: newId(),
+      username,
+      displayName,
+      isAdmin: isFirst,
+      saltB64: b64enc(salt),
+      hashB64: b64enc(hash),
+      createdAt: new Date().toISOString()
+    };
+
+    store.users.push(user);
+    saveUsers(store);
+
+    return user;
+  }
+
+  async function verifyLogin(usernameRaw, password) {
+    const username = normalizeUsername(usernameRaw);
+    const store = loadUsers();
+    const user = store.users.find(u => u.username === username);
+    if (!user) return null;
+
+    const salt = b64dec(user.saltB64);
+    const expected = b64dec(user.hashB64);
+    const got = await pbkdf2Hash(password, salt);
+
+    return timingSafeEqual(expected, got) ? user : null;
+  }
+
+  async function changePassword(userId, oldPw, newPw) {
+    const store = loadUsers();
+    const user = store.users.find(u => u.id === userId);
+    if (!user) throw new Error("User nicht gefunden.");
+
+    const salt = b64dec(user.saltB64);
+    const expected = b64dec(user.hashB64);
+    const got = await pbkdf2Hash(oldPw, salt);
+    if (!timingSafeEqual(expected, got)) throw new Error("Altes Passwort ist falsch.");
+
+    if (!newPw || newPw.length < 8) throw new Error("Neues Passwort mindestens 8 Zeichen.");
+
+    const newSalt = randomBytes(16);
+    const newHash = await pbkdf2Hash(newPw, newSalt);
+
+    user.saltB64 = b64enc(newSalt);
+    user.hashB64 = b64enc(newHash);
+    saveUsers(store);
+  }
+
+  async function adminResetPassword(adminId, targetUserId, newPw) {
+    const store = loadUsers();
+    const admin = store.users.find(u => u.id === adminId);
+    if (!admin || !admin.isAdmin) throw new Error("Keine Admin-Rechte.");
+    const user = store.users.find(u => u.id === targetUserId);
+    if (!user) throw new Error("User nicht gefunden.");
+    if (!newPw || newPw.length < 8) throw new Error("Neues Passwort mindestens 8 Zeichen.");
+
+    const newSalt = randomBytes(16);
+    const newHash = await pbkdf2Hash(newPw, newSalt);
+    user.saltB64 = b64enc(newSalt);
+    user.hashB64 = b64enc(newHash);
+    saveUsers(store);
+  }
+
+  function adminDeleteUser(adminId, targetUserId) {
+    const store = loadUsers();
+    const admin = store.users.find(u => u.id === adminId);
+    if (!admin || !admin.isAdmin) throw new Error("Keine Admin-Rechte.");
+    if (adminId === targetUserId) throw new Error("Admin kann sich hier nicht selbst löschen.");
+
+    store.users = store.users.filter(u => u.id !== targetUserId);
+    saveUsers(store);
+
+    // optional: User-Daten ebenfalls entfernen
+    const data = loadAppData();
+    delete data.entriesByUserId[targetUserId];
+    saveAppData(data);
+  }
+
+  /* ----------------------------
+     App data per user
+     ---------------------------- */
+  function loadAppData() {
+    try{
+      const raw = localStorage.getItem(DATA_KEY);
+      const obj = raw ? JSON.parse(raw) : { entriesByUserId: {} };
+      if (!obj || typeof obj.entriesByUserId !== "object") return { entriesByUserId: {} };
+      return obj;
+    }catch{
+      return { entriesByUserId: {} };
+    }
+  }
+  function saveAppData(obj) {
+    localStorage.setItem(DATA_KEY, JSON.stringify(obj));
+  }
+
+  let currentUser = null;     // user record
+  let selectedEntryId = null; // entry id within current user
+
+  function getEntriesForUser(userId) {
+    const data = loadAppData();
+    return data.entriesByUserId[userId] || [];
+  }
+  function setEntriesForUser(userId, entries) {
+    const data = loadAppData();
+    if (!data.entriesByUserId) data.entriesByUserId = {};
+    data.entriesByUserId[userId] = entries;
+    saveAppData(data);
+  }
+
+  /* ----------------------------
+     Adjustments UI
+     ---------------------------- */
+  function adjRowTemplate(adj) {
+    const id = adj.id;
+    const wrap = document.createElement("div");
+    wrap.className = "adj-item";
+    wrap.dataset.id = id;
+
+    wrap.innerHTML = `
+      <div>
+        <label>Art</label>
+        <select class="adjSign">
+          <option value="+">Gutschrift (+)</option>
+          <option value="-">Abzug (-)</option>
+        </select>
+      </div>
+      <div>
+        <label>Minuten</label>
+        <input class="adjMin" type="number" min="0" step="5" value="0" />
+      </div>
+      <div>
+        <label>Kategorie</label>
+        <select class="adjCat">
+          <option value="Abwesenheit: Externe Schulung">Abwesenheit: Externe Schulung</option>
+          <option value="Abwesenheit: Urlaub">Abwesenheit: Urlaub</option>
+          <option value="Abwesenheit: Krankheit">Abwesenheit: Krankheit</option>
+          <option value="Arbeitszeit: Korrektur">Arbeitszeit: Korrektur</option>
+          <option value="Arbeitszeit: Reisezeit">Arbeitszeit: Reisezeit</option>
+          <option value="Sonstiges">Sonstiges</option>
+        </select>
+      </div>
+      <div>
+        <label>Notiz</label>
+        <input class="adjNote" type="text" placeholder="Optional" />
+      </div>
+      <div>
+        <button type="button" class="btn icon-btn btn--negative adjDel" title="Entfernen">×</button>
+      </div>
+    `;
+
+    wrap.querySelector(".adjSign").value = adj.sign;
+    wrap.querySelector(".adjMin").value = String(adj.minutes ?? 0);
+    wrap.querySelector(".adjCat").value = adj.category ?? "Sonstiges";
+    wrap.querySelector(".adjNote").value = adj.note ?? "";
+
+    wrap.querySelectorAll("input,select").forEach(el => {
+      el.addEventListener("input", () => { computeAndRenderKPIs(); });
+      el.addEventListener("change", () => { computeAndRenderKPIs(); });
+    });
+
+    wrap.querySelector(".adjDel").addEventListener("click", () => {
+      wrap.remove();
+      computeAndRenderKPIs();
+    });
+
+    return wrap;
+  }
+
+  function getAdjustmentsFromUI() {
+    const list = $("adjList");
+    const rows = Array.from(list.querySelectorAll(".adj-item"));
+    return rows.map(r => {
+      const sign = r.querySelector(".adjSign").value;
+      const minutes = clampNum(r.querySelector(".adjMin").value, 0);
+      const category = r.querySelector(".adjCat").value;
+      const note = r.querySelector(".adjNote").value.trim();
+      return { id: r.dataset.id, sign, minutes, category, note };
+    }).filter(a => a.minutes > 0 || a.note || a.category);
+  }
+
+  function setAdjustmentsToUI(adjs) {
+    $("adjList").innerHTML = "";
+    (adjs || []).forEach(a => $("adjList").appendChild(adjRowTemplate(a)));
+  }
+
+  /* ----------------------------
+     Calculations
+     ---------------------------- */
+  function compute(entryLike) {
+    const startMin = parseHHMM(entryLike.start);
+    const endMinRaw = parseHHMM(entryLike.end);
+    const breakMin = Math.max(0, Math.round(clampNum(entryLike.breakMin, 0)));
+    const dailyTargetMin = Math.round(clampNum(entryLike.dailyTargetH, 8) * 60);
+
+    const adjs = entryLike.adjustments || [];
+    let adjSaldo = 0;
+    let absenceCredit = 0;
+    let otherAdj = 0;
+
+    for (const a of adjs) {
+      const s = (a.sign === "-" ? -1 : 1);
+      const m = Math.max(0, Math.round(clampNum(a.minutes, 0)));
+      const v = s * m;
+      adjSaldo += v;
+
+      const cat = (a.category || "").toLowerCase();
+      if (cat.startsWith("abwesenheit")) {
+        if (v > 0) absenceCredit += v;
+        else otherAdj += v;
+      } else {
+        otherAdj += v;
+      }
+    }
+
+    let presence = null;
+    let net = null;
+
+    if (startMin != null && endMinRaw != null) {
+      let endMin = endMinRaw;
+      if (endMin < startMin) endMin += 24 * 60; // Nachtschicht
+      presence = endMin - startMin;
+      net = Math.max(0, presence - breakMin);
+    }
+
+    const credit = (net == null ? 0 : net) + adjSaldo;
+    const diff = credit - dailyTargetMin;
+
+    let predEnd = null;
+    if (startMin != null) {
+      let needNet = dailyTargetMin - adjSaldo;
+      if (needNet < 0) needNet = 0;
+      predEnd = startMin + breakMin + needNet;
+    }
+
+    return { dailyTargetMin, presence, net, adjSaldo, absenceCredit, otherAdj, credit, diff, predEnd };
+  }
+
+  /* ----------------------------
+     Form
+     ---------------------------- */
+  function getForm() {
+    return {
+      date: $("date").value,
+      start: $("start").value,
+      end: $("end").value,
+      breakMin: $("breakMin").value,
+      dailyTargetH: $("dailyTargetH").value,
+      weeklyTargetH: $("weeklyTargetH").value,
+      note: $("note").value.trim(),
+      adjustments: getAdjustmentsFromUI(),
+    };
+  }
+
+  function setForm(entry) {
+    $("date").value = entry.date || todayISO();
+    $("start").value = entry.start || "";
+    $("end").value = entry.end || "";
+    $("breakMin").value = String(entry.breakMin ?? 30);
+    $("dailyTargetH").value = String(entry.dailyTargetH ?? 8);
+    $("weeklyTargetH").value = String(entry.weeklyTargetH ?? 40);
+    $("note").value = entry.note || "";
+    setAdjustmentsToUI(entry.adjustments || []);
+  }
+
+  function clearForm() {
+    selectedEntryId = null;
+    $("deleteBtn").disabled = true;
+    setForm({
+      date: todayISO(),
+      start: "",
+      end: "",
+      breakMin: 30,
+      dailyTargetH: 8,
+      weeklyTargetH: 40,
+      note: "",
+      adjustments: []
+    });
+    computeAndRenderKPIs();
+  }
+
+  function computeAndRenderKPIs() {
+    const f = getForm();
+    const c = compute(f);
+
+    $("kPresence").textContent = fmtDur(c.presence);
+    $("kNet").textContent = fmtDur(c.net);
+    $("kAdj").textContent = fmtDur(c.adjSaldo);
+    $("kAbs").textContent = "Abwesenheit (anrechenbar): " + fmtDur(c.absenceCredit);
+    $("kCredit").textContent = fmtDur(c.credit);
+
+    const diffTxt = (c.diff >= 0 ? "Über Soll: " : "Unter Soll: ") + fmtDur(c.diff);
+    $("kDiff").textContent = diffTxt;
+
+    $("kPredEnd").textContent = (c.predEnd == null ? "–" : fmtHHMMFromMin(c.predEnd));
+
+    renderWeekSummary();
+  }
+
+  /* ----------------------------
+     Table & Week Summary (current user only)
+     ---------------------------- */
+  function renderEntryDetails(e) {
+    const pills = [];
+    if (e.note) pills.push(`<span class="pill">Notiz: ${escapeHtml(e.note)}</span>`);
+    const adjs = e.adjustments || [];
+    for (const a of adjs) {
+      const sign = a.sign === "-" ? "−" : "+";
+      const m = Math.round(clampNum(a.minutes, 0));
+      if (!m && !a.note) continue;
+      const cat = a.category || "Sonstiges";
+      const note = a.note ? ` (${escapeHtml(a.note)})` : "";
+      pills.push(`<span class="pill">${escapeHtml(cat)} ${sign}${m} min${note}</span>`);
+    }
+    return pills.length ? pills.join(" ") : `<span class="muted">–</span>`;
+  }
+
+  function renderTable() {
+    if (!currentUser) return;
+    const entries = [...getEntriesForUser(currentUser.id)].sort((a,b) => (a.date || "").localeCompare(b.date || ""));
+    const tbody = $("tableBody");
+    tbody.innerHTML = "";
+
+    for (const e of entries) {
+      const c = compute(e);
+      const dailyTargetMin = Math.round(clampNum(e.dailyTargetH ?? 8, 8) * 60);
+      const d = c.credit - dailyTargetMin;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${e.date || "–"}</td>
+        <td>${e.start || "–"}</td>
+        <td>${e.end || "–"}</td>
+        <td class="right">${(e.breakMin ?? 0)} min</td>
+        <td class="right">${fmtDur(c.net)}</td>
+        <td class="right">${fmtDur(c.adjSaldo)}</td>
+        <td class="right">${fmtDur(c.credit)}</td>
+        <td class="right">${fmtDur(d)}</td>
+        <td class="wrap">
+          ${renderEntryDetails(e)}
+          <div style="margin-top:8px;">
+            <button type="button" class="btn" data-action="edit" data-id="${e.id}">Bearbeiten</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    tbody.querySelectorAll('button[data-action="edit"]').forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        const entries = getEntriesForUser(currentUser.id);
+        const entry = entries.find(x => x.id === id);
+        if (!entry) return;
+        selectedEntryId = id;
+        $("deleteBtn").disabled = false;
+        setForm(entry);
+        computeAndRenderKPIs();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+  }
+
+  function renderWeekSummary() {
+    if (!currentUser) return;
+
+    const ref = $("weekRef").value || $("date").value || todayISO();
+    const ws = isoWeekStart(ref);
+    const we = addDays(ws, 7);
+
+    const entries = getEntriesForUser(currentUser.id).filter(e => {
+      if (!e.date) return false;
+      const d = new Date(e.date + "T00:00:00");
+      return d >= ws && d < we;
+    });
+
+    let sumNet = 0, sumAbs = 0, sumAdjOther = 0, sumCredit = 0;
+    const weeklyTargetMin = Math.round(clampNum($("weeklyTargetH").value, 40) * 60);
+
+    for (const e of entries) {
+      const c = compute(e);
+      sumNet += (c.net ?? 0);
+      sumAbs += (c.absenceCredit ?? 0);
+      sumAdjOther += (c.otherAdj ?? 0);
+      sumCredit += (c.credit ?? 0);
+    }
+
+    const diff = sumCredit - weeklyTargetMin;
+    $("kWeekNet").textContent = fmtDur(sumNet);
+    $("kWeekAbs").textContent = fmtDur(sumAbs);
+    $("kWeekAdj").textContent = fmtDur(sumAdjOther);
+    $("kWeekCredit").textContent = fmtDur(sumCredit);
+    $("kWeek").textContent = (diff >= 0 ? "Über Soll: " : "Unter Soll: ") + fmtDur(diff);
+
+    const wsISO = dateToISO(ws);
+    const weISO = dateToISO(addDays(ws, 6));
+    $("kWeekS").textContent = `Woche ${wsISO} bis ${weISO} | Soll: ${fmtDur(weeklyTargetMin)}`;
+  }
+
+  /* ----------------------------
+     CRUD entries (current user)
+     ---------------------------- */
+  function upsertEntry() {
+    if (!currentUser) return;
+
+    const f = getForm();
+    if (!f.date) { alert("Bitte Datum setzen."); return; }
+
+    const entry = {
+      id: selectedEntryId || newId(),
+      date: f.date,
+      start: f.start || "",
+      end: f.end || "",
+      breakMin: Math.max(0, Math.round(clampNum(f.breakMin, 0))),
+      dailyTargetH: clampNum(f.dailyTargetH, 8),
+      weeklyTargetH: clampNum(f.weeklyTargetH, 40),
+      note: f.note || "",
+      adjustments: f.adjustments || []
+    };
+
+    const entries = getEntriesForUser(currentUser.id);
+    const idx = entries.findIndex(e => e.id === entry.id);
+    if (idx >= 0) entries[idx] = entry;
+    else entries.push(entry);
+    setEntriesForUser(currentUser.id, entries);
+
+    selectedEntryId = entry.id;
+    $("deleteBtn").disabled = false;
+
+    renderTable();
+    computeAndRenderKPIs();
+  }
+
+  function deleteEntry() {
+    if (!currentUser || !selectedEntryId) return;
+    const ok = confirm("Eintrag wirklich löschen?");
+    if (!ok) return;
+
+    const entries = getEntriesForUser(currentUser.id).filter(e => e.id !== selectedEntryId);
+    setEntriesForUser(currentUser.id, entries);
+
+    clearForm();
+    renderTable();
+    computeAndRenderKPIs();
+  }
+
+  /* ----------------------------
+     Export/Import (current user)
+     ---------------------------- */
+  function exportJSON() {
+    if (!currentUser) return;
+    const entries = getEntriesForUser(currentUser.id);
+    const payload = {
+      schema: "wt_export_v1",
+      user: { username: currentUser.username, displayName: currentUser.displayName },
+      exportedAt: new Date().toISOString(),
+      entries
+    };
+    download(`arbeitszeit_${currentUser.username}_${todayISO()}.json`, JSON.stringify(payload, null, 2), "application/json");
+  }
+
+  function importJSON(file) {
+    if (!currentUser) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const obj = JSON.parse(String(reader.result || ""));
+        const imported = Array.isArray(obj?.entries) ? obj.entries : (Array.isArray(obj?.entriesByUserId) ? obj.entriesByUserId : null);
+        const entries = Array.isArray(obj?.entries) ? obj.entries : null;
+        if (!entries) throw new Error("Ungültiges Format (erwarte { entries: [...] }).");
+
+        const normalized = entries.map(e => ({
+          id: e.id || newId(),
+          date: e.date || "",
+          start: e.start || "",
+          end: e.end || "",
+          breakMin: Math.max(0, Math.round(clampNum(e.breakMin, 0))),
+          dailyTargetH: clampNum(e.dailyTargetH, 8),
+          weeklyTargetH: clampNum(e.weeklyTargetH, 40),
+          note: e.note || "",
+          adjustments: Array.isArray(e.adjustments) ? e.adjustments.map(a => ({
+            id: a.id || newId(),
+            sign: a.sign === "-" ? "-" : "+",
+            minutes: Math.max(0, Math.round(clampNum(a.minutes, 0))),
+            category: a.category || "Sonstiges",
+            note: a.note || ""
+          })) : []
+        }));
+
+        // Merge by date+id strategy: append, user can clean up
+        const current = getEntriesForUser(currentUser.id);
+        setEntriesForUser(currentUser.id, [...current, ...normalized]);
+
+        renderTable();
+        computeAndRenderKPIs();
+        alert("Import abgeschlossen (in aktuellen User).");
+      } catch (err) {
+        alert("Import fehlgeschlagen: " + (err?.message || String(err)));
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function exportCSV() {
+    if (!currentUser) return;
+    const entries = [...getEntriesForUser(currentUser.id)].sort((a,b) => (a.date || "").localeCompare(b.date || ""));
+    const header = [
+      "Datum","Start","Ende","PauseMin","AnwesenheitMin","NettoMin","AdjSaldoMin","AbwesenheitMin","AnrechenbarMin","Notiz","AdjDetails"
+    ];
+    const rows = [header.join(";")];
+
+    for (const e of entries) {
+      const c = compute(e);
+      const adjDetails = (e.adjustments || []).map(a => {
+        const sign = a.sign === "-" ? "-" : "+";
+        const m = Math.round(clampNum(a.minutes, 0));
+        const cat = a.category || "Sonstiges";
+        const note = a.note ? `:${a.note}` : "";
+        return `${cat}${sign}${m}${note}`;
+      }).join(" | ");
+
+      rows.push([
+        e.date || "",
+        e.start || "",
+        e.end || "",
+        Math.round(clampNum(e.breakMin, 0)),
+        c.presence ?? "",
+        c.net ?? "",
+        c.adjSaldo ?? "",
+        c.absenceCredit ?? "",
+        c.credit ?? "",
+        (e.note || "").replaceAll(";", ","),
+        adjDetails.replaceAll(";", ",")
+      ].join(";"));
+    }
+
+    download(`arbeitszeit_${currentUser.username}_${todayISO()}.csv`, rows.join("\n"), "text/csv");
+  }
+
+  /* ----------------------------
+     Auth UI
+     ---------------------------- */
+  function showAuthOverlay(forceOpen=false) {
+    const session = loadSession();
+    if (forceOpen || !session) {
+      $("authOverlay").classList.add("show");
+      $("authOverlay").setAttribute("aria-hidden", "false");
+      return;
+    }
+  }
+  function hideAuthOverlay() {
+    $("authOverlay").classList.remove("show");
+    $("authOverlay").setAttribute("aria-hidden", "true");
+  }
+
+  function setTab(tab) {
+    const isLogin = tab === "login";
+    $("tabLogin").classList.toggle("active", isLogin);
+    $("tabRegister").classList.toggle("active", !isLogin);
+    $("loginPane").style.display = isLogin ? "" : "none";
+    $("registerPane").style.display = !isLogin ? "" : "none";
+    $("loginErr").textContent = "";
+    $("regErr").textContent = "";
+    $("regOk").textContent = "";
+  }
+
+  async function doLogin() {
+    $("loginErr").textContent = "";
+    const u = $("loginUser").value;
+    const p = $("loginPw").value;
+
+    try {
+      const user = await verifyLogin(u, p);
+      if (!user) {
+        $("loginErr").textContent = "Login fehlgeschlagen (Benutzer/Passwort).";
+        return;
+      }
+      saveSession(user.id);
+      await loadCurrentUserFromSession();
+      hideAuthOverlay();
+      afterUserReady();
+    } catch (e) {
+      $("loginErr").textContent = e?.message || String(e);
+    }
+  }
+
+  async function doRegister() {
+    $("regErr").textContent = "";
+    $("regOk").textContent = "";
+
+    const u = $("regUser").value;
+    const n = $("regName").value;
+    const p = $("regPw").value;
+
+    try {
+      const user = await registerUser(u, n, p);
+      $("regOk").textContent = "Account angelegt. Du kannst dich jetzt anmelden.";
+      setTab("login");
+      $("loginUser").value = user.username;
+      $("loginPw").value = "";
+    } catch (e) {
+      $("regErr").textContent = e?.message || String(e);
+    }
+  }
+
+  async function loadCurrentUserFromSession() {
+    const session = loadSession();
+    if (!session) { currentUser = null; return; }
+    const store = loadUsers();
+    const user = store.users.find(u => u.id === session.userId) || null;
+    currentUser = user;
+  }
+
+  function updateUserButton() {
+    if (!currentUser) {
+      $("userBtnText").textContent = "Nicht angemeldet";
+      return;
+    }
+    const label = currentUser.displayName ? `${currentUser.displayName}` : currentUser.username;
+    $("userBtnText").textContent = currentUser.isAdmin ? `${label} (Admin)` : label;
+  }
+
+  function toggleUserMenu() {
+    $("userMenu").classList.toggle("show");
+  }
+  function closeUserMenu() {
+    $("userMenu").classList.remove("show");
+  }
+
+  function logout() {
+    clearSession();
+    currentUser = null;
+    updateUserButton();
+    closeUserMenu();
+    showAuthOverlay(true);
+  }
+
+  /* ----------------------------
+     User management UI
+     ---------------------------- */
+  function showUserMgmt() {
+    if (!currentUser) return;
+    $("userMgmtOverlay").classList.add("show");
+    $("userMgmtOverlay").setAttribute("aria-hidden", "false");
+    renderUsersList();
+    $("adminCreateUserCard").style.display = currentUser.isAdmin ? "" : "none";
+    $("userMgmtHint").textContent =
+      currentUser.isAdmin
+        ? "Admin: Du kannst lokal Benutzer anlegen, Passwörter zurücksetzen und Benutzer löschen."
+        : "Du kannst dein Passwort ändern. Benutzerverwaltung ist nur für Admin verfügbar.";
+  }
+  function hideUserMgmt() {
+    $("userMgmtOverlay").classList.remove("show");
+    $("userMgmtOverlay").setAttribute("aria-hidden", "true");
+    $("adminCreateErr").textContent = "";
+    $("adminCreateOk").textContent = "";
+    $("pwErr").textContent = "";
+    $("pwOk").textContent = "";
+    $("pwOld").value = $("pwNew").value = $("pwNew2").value = "";
+  }
+
+  function renderUsersList() {
+    const store = loadUsers();
+    const list = $("usersList");
+    list.innerHTML = "";
+
+    for (const u of store.users) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.style.borderRadius = "10px";
+      card.style.overflow = "hidden";
+
+      const head = document.createElement("div");
+      head.className = "card__header";
+      head.innerHTML = `
+        <div>
+          <h2>${escapeHtml(u.displayName || u.username)}</h2>
+          <p class="hint">@${escapeHtml(u.username)} ${u.isAdmin ? "• Admin" : ""}</p>
+        </div>
+      `;
+
+      const body = document.createElement("div");
+      body.className = "card__body";
+      body.innerHTML = `
+        <div class="btns" style="margin-top:0;">
+          ${currentUser.isAdmin ? `<button class="btn" data-act="reset" data-id="${u.id}">Passwort reset</button>` : ``}
+          ${currentUser.isAdmin && currentUser.id !== u.id ? `<button class="btn btn--negative" data-act="del" data-id="${u.id}">Löschen</button>` : ``}
+          ${currentUser.id === u.id ? `<span class="mini">Aktueller User</span>` : ``}
+        </div>
+        ${currentUser.isAdmin ? `<div class="mini" style="margin-top:8px;">Reset setzt ein neues Passwort (mind. 8 Zeichen). Kein E-Mail-Flow, rein lokal.</div>` : ``}
+      `;
+
+      card.appendChild(head);
+      card.appendChild(body);
+      list.appendChild(card);
+    }
+
+    list.querySelectorAll("button[data-act='reset']").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const targetId = btn.dataset.id;
+        const pw = prompt("Neues Passwort (mind. 8 Zeichen):");
+        if (!pw) return;
+        try {
+          await adminResetPassword(currentUser.id, targetId, pw);
+          alert("Passwort wurde gesetzt.");
+        } catch (e) {
+          alert(e?.message || String(e));
+        }
+      });
+    });
+
+    list.querySelectorAll("button[data-act='del']").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const targetId = btn.dataset.id;
+        const ok = confirm("Benutzer wirklich löschen? (Daten dieses Users werden ebenfalls entfernt)");
+        if (!ok) return;
+        try {
+          adminDeleteUser(currentUser.id, targetId);
+          renderUsersList();
+        } catch (e) {
+          alert(e?.message || String(e));
+        }
+      });
+    });
+  }
+
+  async function adminCreateUser() {
+    $("adminCreateErr").textContent = "";
+    $("adminCreateOk").textContent = "";
+    if (!currentUser?.isAdmin) return;
+
+    const u = $("adminNewUser").value;
+    const n = $("adminNewName").value;
+    const p = $("adminNewPw").value;
+
+    try {
+      await registerUser(u, n, p);
+      $("adminCreateOk").textContent = "Benutzer angelegt.";
+      $("adminNewUser").value = $("adminNewName").value = $("adminNewPw").value = "";
+      renderUsersList();
+    } catch (e) {
+      $("adminCreateErr").textContent = e?.message || String(e);
+    }
+  }
+
+  async function changeOwnPw() {
+    $("pwErr").textContent = "";
+    $("pwOk").textContent = "";
+    if (!currentUser) return;
+
+    const oldPw = $("pwOld").value;
+    const newPw = $("pwNew").value;
+    const newPw2 = $("pwNew2").value;
+
+    if (newPw !== newPw2) {
+      $("pwErr").textContent = "Neues Passwort stimmt nicht überein.";
+      return;
+    }
+
+    try {
+      await changePassword(currentUser.id, oldPw, newPw);
+      $("pwOk").textContent = "Passwort geändert.";
+      $("pwOld").value = $("pwNew").value = $("pwNew2").value = "";
+    } catch (e) {
+      $("pwErr").textContent = e?.message || String(e);
+    }
+  }
+
+  /* ----------------------------
+     Events
+     ---------------------------- */
+  function wireEvents() {
+    // live calc
+    ["date","start","end","breakMin","dailyTargetH","weeklyTargetH","note"].forEach(id => {
+      $(id).addEventListener("input", computeAndRenderKPIs);
+      $(id).addEventListener("change", computeAndRenderKPIs);
+    });
+
+    $("weekRef").addEventListener("change", renderWeekSummary);
+    $("weekRef").addEventListener("input", renderWeekSummary);
+
+    $("addAdjBtn").addEventListener("click", () => {
+      $("adjList").appendChild(adjRowTemplate({
+        id: newId(),
+        sign: "+",
+        minutes: 60,
+        category: "Abwesenheit: Externe Schulung",
+        note: ""
+      }));
+      computeAndRenderKPIs();
+    });
+
+    $("saveBtn").addEventListener("click", upsertEntry);
+    $("newBtn").addEventListener("click", clearForm);
+    $("deleteBtn").addEventListener("click", deleteEntry);
+
+    $("exportJsonBtn").addEventListener("click", exportJSON);
+    $("exportCsvBtn").addEventListener("click", exportCSV);
+
+    $("importJson").addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) importJSON(file);
+      e.target.value = "";
+    });
+
+    // auth overlay
+    $("tabLogin").addEventListener("click", () => setTab("login"));
+    $("tabRegister").addEventListener("click", () => setTab("register"));
+    $("loginBtn").addEventListener("click", doLogin);
+    $("registerBtn").addEventListener("click", doRegister);
+    $("authCloseBtn").addEventListener("click", () => {
+      // nur schließen wenn bereits eingeloggt
+      if (currentUser) hideAuthOverlay();
+    });
+
+    // Enter key for login/register
+    ["loginUser","loginPw"].forEach(id => $(id).addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") doLogin();
+    }));
+    ["regUser","regName","regPw"].forEach(id => $(id).addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") doRegister();
+    }));
+
+    // user menu dropdown
+    $("userBtn").addEventListener("click", () => toggleUserMenu());
+    document.addEventListener("click", (e) => {
+      const within = e.target.closest(".dropdown");
+      if (!within) closeUserMenu();
+    });
+
+    $("logoutBtn").addEventListener("click", logout);
+
+    $("openUserMgmtBtn").addEventListener("click", () => {
+      closeUserMenu();
+      showUserMgmt();
+    });
+    $("changePwBtn").addEventListener("click", () => {
+      closeUserMenu();
+      showUserMgmt();
+      // Fokus auf Passwortbereich
+      setTimeout(() => $("pwOld").focus(), 0);
+    });
+
+    $("userMgmtCloseBtn").addEventListener("click", hideUserMgmt);
+    $("adminCreateUserBtn").addEventListener("click", adminCreateUser);
+    $("pwChangeBtn").addEventListener("click", changeOwnPw);
+  }
+
+  function afterUserReady() {
+    updateUserButton();
+
+    // Init defaults
+    $("date").value = todayISO();
+    $("weekRef").value = todayISO();
+
+    clearForm();
+    renderTable();
+    computeAndRenderKPIs();
+  }
+
+  async function init() {
+    // Basic secure context check for crypto
+    if (!window.isSecureContext) {
+      alert("Hinweis: Diese App benötigt HTTPS (Secure Context) für Login (WebCrypto). Auf GitHub Pages funktioniert das. Lokal bitte über einen Server starten (nicht file://).");
+    }
+
+    wireEvents();
+    await loadCurrentUserFromSession();
+    updateUserButton();
+
+    if (!currentUser) {
+      // no session -> open auth
+      setTab("login");
+      showAuthOverlay(true);
+      // Minimal UI init even without user
+      $("date").value = todayISO();
+      $("weekRef").value = todayISO();
+      clearForm();
+      return;
+    }
+
+    hideAuthOverlay();
+    afterUserReady();
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>
