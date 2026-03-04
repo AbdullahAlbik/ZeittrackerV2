@@ -1896,6 +1896,11 @@
 })();
 
 
+</script>
+
+</body>
+
+
   export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -1917,10 +1922,5 @@
     return new Response("not found", { status: 404 });
   }
 };
-</script>
-
-</body>
-
-
   
 </html>
