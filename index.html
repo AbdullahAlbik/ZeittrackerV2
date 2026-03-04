@@ -1900,27 +1900,5 @@
 
 </body>
 
-
-  export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-
-    if (url.pathname === "/api/health") {
-      try {
-        const r = await env.DB.prepare("SELECT 1 AS ok").first();
-        return new Response(JSON.stringify({ ok: true, db: r.ok }), {
-          headers: { "content-type": "application/json; charset=utf-8" },
-        });
-      } catch (e) {
-        return new Response(JSON.stringify({ ok: false, error: String(e?.message || e) }), {
-          status: 500,
-          headers: { "content-type": "application/json; charset=utf-8" },
-        });
-      }
-    }
-
-    return new Response("not found", { status: 404 });
-  }
-};
   
 </html>
