@@ -1,851 +1,18 @@
-<!doctype html>
-<html lang="de">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Arbeitszeit – Daily Tracker (Fiori-Look + Login)</title>
-  <style>
-    :root{
-      --sapBrandColor:#0A6ED1;
-      --sapHighlightColor:#0854A0;
-      --sapBaseColor:#F7F7F7;
-      --sapTileBg:#FFFFFF;
-      --sapTextColor:#32363A;
-      --sapMutedText:#6A6D70;
-      --sapBorderColor:#D9D9D9;
-      --sapShadow: 0 1px 2px rgba(0,0,0,.08);
-      --sapRadius: 10px;
-      --sapFocus: 0 0 0 2px rgba(10,110,209,.25);
-      --sapDanger:#BB0000;
-
-      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family: var(--font);
-      color: var(--sapTextColor);
-      background: var(--sapBaseColor);
-    }
-
-    /* Shellbar */
-    .shellbar{
-      position: sticky;
-      top:0;
-      z-index: 10;
-      height: 52px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding: 0 16px;
-      background: #FFFFFF;
-      border-bottom: 1px solid var(--sapBorderColor);
-    }
-    .shellbar__brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width: 260px;
-    }
-    .logo{
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      background: linear-gradient(135deg, var(--sapBrandColor), #3AA0FF);
-      box-shadow: var(--sapShadow);
-      flex: 0 0 auto;
-    }
-    .shellbar__title{
-      display:flex;
-      flex-direction:column;
-      line-height:1.1;
-    }
-    .shellbar__title strong{
-      font-size: 14px;
-      font-weight: 700;
-    }
-    .shellbar__title span{
-      font-size: 12px;
-      color: var(--sapMutedText);
-    }
-    .shellbar__spacer{ flex:1; }
-    .shellbar__actions{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-
-    /* Page layout – responsive, viewport-basiert */
-    .page{
-      width: min(96vw, 1600px);           /* relative Bildschirmbreite + obere Grenze */
-      margin: 16px auto 28px;
-      padding: 0 clamp(12px, 2vw, 24px);  /* relatives Innenpadding */
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-      min-width: 0;                       /* wichtig für Grid-Overflow */
-    }
-    @media(min-width: 1020px){
-      .page{
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-        align-items:start;
-      }
-    }
-    .page > .card{ min-width: 0; }        /* Grid-Kinder dürfen schrumpfen */
-
-    /* Card */
-    .card{
-      background: var(--sapTileBg);
-      border: 1px solid var(--sapBorderColor);
-      border-radius: var(--sapRadius);
-      box-shadow: var(--sapShadow);
-      overflow:hidden;
-      min-width: 0;                       /* zusätzlich sicher */
-    }
-    .card__header{
-      padding: 14px 16px 10px;
-      border-bottom: 1px solid rgba(217,217,217,.65);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 12px;
-      flex-wrap: wrap;                    /* verhindert Überlagerung bei wenig Platz */
-    }
-    .card__header > *{ min-width: 0; }    /* Text/KPI dürfen umbrechen */
-    .card__header h2{
-      margin:0;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: .2px;
-    }
-    .card__header .hint{
-      margin:0;
-      font-size: 12px;
-      color: var(--sapMutedText);
-    }
-    .card__body{
-      padding: 14px 16px 16px;
-    }
-
-    /* Forms */
-    .row{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    @media(min-width: 720px){
-      .row.cols-2{ grid-template-columns: 1fr 1fr; }
-      .row.cols-3{ grid-template-columns: 1fr 1fr 1fr; }
-      .row.cols-4{ grid-template-columns: 1fr 1fr 1fr 1fr; }
-    }
-    label{
-      display:block;
-      font-size: 12px;
-      color: var(--sapMutedText);
-      margin-bottom: 6px;
-    }
-    input, select, textarea{
-      width:100%;
-      border: 1px solid var(--sapBorderColor);
-      border-radius: 8px;
-      padding: 9px 10px;
-      font-size: 13px;
-      background:#fff;
-      color: var(--sapTextColor);
-      outline:none;
-      transition: box-shadow .12s, border-color .12s;
-    }
-    textarea{ min-height: 62px; resize: vertical; }
-    input:focus, select:focus, textarea:focus{
-      border-color: rgba(10,110,209,.55);
-      box-shadow: var(--sapFocus);
-    }
-    input[type="number"]{ font-family: var(--mono); }
-
-    /* Buttons */
-    .btns{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-top: 8px;
-    }
-    .btn{
-      border: 1px solid var(--sapBorderColor);
-      background: #fff;
-      color: var(--sapTextColor);
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor:pointer;
-      transition: background .12s, border-color .12s, box-shadow .12s;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      user-select:none;
-    }
-    .btn:hover{ background:#F5F6F7; }
-    .btn:focus{ outline:none; box-shadow: var(--sapFocus); }
-    .btn--emphasized{
-      background: var(--sapBrandColor);
-      border-color: var(--sapBrandColor);
-      color:#fff;
-    }
-    .btn--emphasized:hover{ background: var(--sapHighlightColor); border-color: var(--sapHighlightColor); }
-    .btn--negative{
-      background:#fff;
-      border-color: rgba(187,0,0,.35);
-      color: var(--sapDanger);
-    }
-    .btn--negative:hover{ background: rgba(187,0,0,.06); }
-    .btn[disabled]{ opacity:.55; cursor:not-allowed; }
-
-    .icon{
-      width: 14px;
-      height: 14px;
-      display:inline-block;
-    }
-
-    /* KPI tiles */
-    .kpis{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 10px;
-    }
-    @media(min-width: 720px){
-      .kpis{ grid-template-columns: 1fr 1fr 1fr 1fr; }
-    }
-    .kpi{
-      border: 1px solid var(--sapBorderColor);
-      border-radius: 10px;
-      padding: 10px 12px;
-      background: #fff;
-      min-width: 0;
-    }
-    .kpi .t{
-      font-size: 12px;
-      color: var(--sapMutedText);
-      margin-bottom: 6px;
-    }
-    .kpi .v{
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing:.2px;
-      overflow-wrap: anywhere; /* verhindert, dass lange Strings Layout sprengen */
-    }
-    .kpi .s{
-      margin-top: 4px;
-      font-size: 12px;
-      color: var(--sapMutedText);
-      overflow-wrap: anywhere;
-    }
-    .kpi .s.strong{
-      color: var(--sapTextColor);
-      font-weight: 700;
-    }
-
-    /* Adjustments */
-    .section-split{
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px dashed rgba(217,217,217,.85);
-    }
-    .adj-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 12px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
-    .adj-head .title{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width: 0;
-    }
-    .adj-head .title strong{
-      font-size: 13px;
-    }
-    .adj-head .title span{
-      font-size: 12px;
-      color: var(--sapMutedText);
-    }
-    .adj-list{ display:grid; gap: 10px; }
-    .adj-item{
-      border: 1px solid var(--sapBorderColor);
-      border-radius: 10px;
-      padding: 10px 10px 6px;
-      background: #fff;
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      min-width: 0;
-    }
-    @media(min-width: 720px){
-      .adj-item{
-        grid-template-columns: 120px 150px 240px 1fr 44px;
-        align-items:end;
-      }
-    }
-    .icon-btn{
-      width: 44px;
-      justify-content:center;
-      padding: 9px 0;
-    }
-
-    /* Table wrapper – verhindert verdeckte Spalten */
-    .table-wrap{
-      width: 100%;
-      overflow-x: auto;                /* horizontal scroll statt verdecken */
-      -webkit-overflow-scrolling: touch;
-      border-radius: 10px;
-    }
-    .table-wrap table{
-      min-width: 920px;                /* stabilisiert Spalten (optional) */
-    }
-
-    /* Table */
-    table{
-      width:100%;
-      border-collapse: collapse;
-      border: 1px solid var(--sapBorderColor);
-      border-radius: 10px;
-      overflow:hidden;
-      background:#fff;
-      margin-top: 12px;
-    }
-    thead{
-      background: #FAFAFA;
-      border-bottom: 1px solid var(--sapBorderColor);
-    }
-    th, td{
-      padding: 10px 10px;
-      font-size: 13px;
-      border-bottom: 1px solid rgba(217,217,217,.65);
-      text-align:left;
-      white-space:nowrap;
-      vertical-align:top;
-    }
-    tbody tr:hover{ background:#F7FAFF; }
-    td.right{ text-align:right; font-family: var(--mono); }
-    td.wrap{ white-space:normal; }
-    .pill{
-      display:inline-block;
-      padding: 2px 8px;
-      margin: 2px 6px 0 0;
-      border: 1px solid rgba(217,217,217,.85);
-      border-radius: 999px;
-      font-size: 12px;
-      background:#fff;
-      color: var(--sapTextColor);
-    }
-    .muted{ color: var(--sapMutedText); }
-    .note{
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--sapMutedText);
-      line-height: 1.35;
-    }
-
-    /* Small toolbar in shellbar */
-    .shell-input{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding: 6px 8px;
-      border: 1px solid var(--sapBorderColor);
-      border-radius: 8px;
-      background:#fff;
-    }
-    .shell-input label{
-      margin:0;
-      font-size:12px;
-      color: var(--sapMutedText);
-    }
-    .shell-input input{
-      border:none;
-      padding: 0;
-      font-size: 13px;
-      width: 140px;
-    }
-    .shell-input input:focus{ box-shadow:none; }
-
-    /* Dialog / Overlay */
-    .overlay{
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.35);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding: 16px;
-      z-index: 50;
-    }
-    .overlay.show{ display:flex; }
-    .dialog{
-      width: min(720px, 100%);
-      background: #fff;
-      border: 1px solid var(--sapBorderColor);
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.25);
-      overflow:hidden;
-    }
-    .dialog__header{
-      padding: 14px 16px 10px;
-      border-bottom: 1px solid rgba(217,217,217,.65);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-    }
-    .dialog__header strong{ font-size: 14px; }
-    .dialog__body{ padding: 14px 16px 16px; }
-    .tabs{
-      display:flex;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-    .tab{
-      border: 1px solid var(--sapBorderColor);
-      background:#fff;
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor:pointer;
-    }
-    .tab.active{
-      border-color: rgba(10,110,209,.5);
-      box-shadow: var(--sapFocus);
-    }
-    .error{
-      margin: 8px 0 0;
-      color: var(--sapDanger);
-      font-size: 12px;
-      min-height: 16px;
-    }
-    .ok{
-      margin: 8px 0 0;
-      color: #107E3E;
-      font-size: 12px;
-      min-height: 16px;
-    }
-
-    .mini{
-      font-size: 12px;
-      color: var(--sapMutedText);
-      line-height: 1.35;
-    }
-
-    /* Simple dropdown */
-    .dropdown{
-      position: relative;
-      display:inline-block;
-    }
-    .menu{
-      position:absolute;
-      right:0;
-      top: calc(100% + 6px);
-      width: 260px;
-      background:#fff;
-      border: 1px solid var(--sapBorderColor);
-      border-radius: 10px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.14);
-      padding: 6px;
-      display:none;
-      z-index: 20;
-    }
-    .menu.show{ display:block; }
-    .menu button{
-      width: 100%;
-      justify-content:flex-start;
-    }
-    .menu .sep{
-      height:1px;
-      background: rgba(217,217,217,.75);
-      margin: 6px 0;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="shellbar">
-    <div class="shellbar__brand">
-      <div class="logo" aria-hidden="true"></div>
-      <div class="shellbar__title">
-        <strong>Arbeitszeit</strong>
-        <span>Tracker</span>
-      </div>
-    </div>
-
-    <div class="shellbar__spacer"></div>
-
-    <div class="shellbar__actions">
-      <div class="shell-input" title="Woche anzeigen">
-        <label for="weekRef">Woche</label>
-        <input id="weekRef" type="date" />
-      </div>
-
-      <button class="btn" id="exportJsonBtn" type="button" title="Export JSON">
-        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1l3 3H9v5H7V4H5l3-3zm-5 9h10v3H3v-3zm-1 0v4h12v-4H2z"/></svg>
-        Export
-      </button>
-
-      <label class="btn" style="margin:0;" title="Import JSON (in aktuellen User)">
-        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 15l-3-3h2V7h2v5h2l-3 3zM3 2h10v3H3V2zm-1 0v4h12V2H2z"/></svg>
-        Import
-        <input id="importJson" type="file" accept="application/json" style="display:none;" />
-      </label>
-
-      <button class="btn" id="exportCsvBtn" type="button" title="CSV Export">
-        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3 2h7l3 3v9H3V2zm7 1v3h3"/></svg>
-        CSV
-      </button>
-
-      <div class="dropdown">
-        <button class="btn" id="userBtn" type="button" title="Benutzer">
-          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 8a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 1c-3 0-5 1.5-5 3v1h10v-1c0-1.5-2-3-5-3z"/></svg>
-          <span id="userBtnText">Nicht angemeldet</span>
-        </button>
-        <div class="menu" id="userMenu">
-          <button class="btn" type="button" id="openUserMgmtBtn">Nutzerverwaltung</button>
-          <button class="btn" type="button" id="changePwBtn">Passwort ändern</button>
-          <div class="sep"></div>
-          <button class="btn btn--negative" type="button" id="logoutBtn">Logout</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="page">
-    <!-- Left: Day Entry -->
-    <section class="card">
-      <div class="card__header">
-        <div>
-          <h2>Tages-Eintrag</h2>
-          <p class="hint">Berechnungen sofort, Speicherung pro User lokal im Browser.</p>
-        </div>
-        <div class="btns" style="margin:0;">
-          <button class="btn btn--emphasized" id="saveBtn" type="button">Speichern</button>
-          <button class="btn" id="newBtn" type="button">Neu</button>
-          <button class="btn btn--negative" id="deleteBtn" type="button" disabled>Löschen</button>
-        </div>
-      </div>
-
-      <div class="card__body">
-        <div class="row cols-4">
-          <div>
-            <label for="date">Datum</label>
-            <input id="date" type="date" />
-          </div>
-          <div>
-            <label for="start">Start</label>
-            <input id="start" type="time" step="60" />
-          </div>
-          <div>
-            <label for="end">Ende</label>
-            <input id="end" type="time" step="60" />
-          </div>
-          <div>
-            <label for="breakMin">Pause (Minuten)</label>
-            <input id="breakMin" type="number" min="0" step="5" value="30" />
-          </div>
-        </div>
-
-        <div class="row cols-3">
-          <div>
-            <label for="dailyTargetH">Tagessoll (Std) – Netto</label>
-            <input id="dailyTargetH" type="number" min="0" step="0.25" value="8" />
-          </div>
-          <div>
-            <label for="weeklyTargetH">Wochensoll (Std)</label>
-            <input id="weeklyTargetH" type="number" min="0" step="0.5" value="40" />
-          </div>
-          <div>
-            <label for="note">Tagesnotiz</label>
-            <input id="note" type="text" placeholder="Optional" />
-          </div>
-        </div>
-
-        <div class="kpis">
-          <div class="kpi">
-            <div class="t">Anwesenheit</div>
-            <div class="v" id="kPresence">–</div>
-            <div class="s">Ende − Start</div>
-          </div>
-          <div class="kpi">
-            <div class="t">Netto gearbeitet</div>
-            <div class="v" id="kNet">–</div>
-            <div class="s">Anwesenheit − Pause</div>
-          </div>
-          <div class="kpi">
-            <div class="t">Anpassungen (Saldo)</div>
-            <div class="v" id="kAdj">–</div>
-            <div class="s" id="kAbs">Abwesenheit (anrechenbar): –</div>
-          </div>
-          <div class="kpi">
-            <div class="t">Anrechenbar</div>
-            <div class="v" id="kCredit">–</div>
-            <div class="s strong" id="kDiff">Abweichung: –</div>
-          </div>
-        </div>
-
-        <div class="row cols-2" style="margin-top:12px;">
-          <div class="kpi">
-            <div class="t">Voraussichtliches Arbeitsende (für Tagessoll)</div>
-            <div class="v" id="kPredEnd">–</div>
-            <div class="s">Start + Pause + (Soll − Anpassungen)</div>
-          </div>
-          <div class="kpi">
-            <div class="t">Hinweis</div>
-            <div class="s">Wenn Ende vor Start liegt, wird automatisch der nächste Tag angenommen (Nachtschicht).</div>
-          </div>
-        </div>
-
-        <div class="section-split">
-          <div class="adj-head">
-            <div class="title">
-              <strong>Zu-/Abzüge</strong>
-              <span>z. B. externe Schulung (anrechenbare Abwesenheit), Korrekturen, Reisezeit</span>
-            </div>
-            <button class="btn" id="addAdjBtn" type="button">+ Eintrag</button>
-          </div>
-          <div id="adjList" class="adj-list"></div>
-        </div>
-
-        <p class="note">
-          Hinweis: Login & Daten sind lokal (pro Browser). Für echte Multi-User über Geräte brauchst du ein Backend.
-        </p>
-      </div>
-    </section>
-
-    <!-- Right: Week & History -->
-    <section class="card">
-      <div class="card__header">
-        <div>
-          <h2>Woche &amp; Historie</h2>
-          <p class="hint">Wochensummen basieren auf dem im Header ausgewählten Datum.</p>
-        </div>
-        <div class="kpi" style="min-width: 240px; padding: 10px 12px;">
-          <div class="t">Wochensaldo</div>
-          <div class="v" id="kWeek">–</div>
-          <div class="s" id="kWeekS">Soll: –</div>
-        </div>
-      </div>
-
-      <div class="card__body">
-        <div class="kpis" style="margin-top:0;">
-          <div class="kpi">
-            <div class="t">Netto gearbeitet</div>
-            <div class="v" id="kWeekNet">–</div>
-            <div class="s">Summe ohne Pausen</div>
-          </div>
-          <div class="kpi">
-            <div class="t">Abwesenheit (anrechenbar)</div>
-            <div class="v" id="kWeekAbs">–</div>
-            <div class="s">Schulung/Urlaub/Krank</div>
-          </div>
-          <div class="kpi">
-            <div class="t">Anpassungen (sonstige)</div>
-            <div class="v" id="kWeekAdj">–</div>
-            <div class="s">Korrekturen etc.</div>
-          </div>
-          <div class="kpi">
-            <div class="t">Anrechenbar gesamt</div>
-            <div class="v" id="kWeekCredit">–</div>
-            <div class="s">Netto + Anpassungen</div>
-          </div>
-        </div>
-
-        <!-- WRAPPER: verhindert, dass Spalten verdeckt werden -->
-        <div class="table-wrap">
-          <table aria-label="Historie">
-            <thead>
-              <tr>
-                <th>Datum</th>
-                <th>Start</th>
-                <th>Ende</th>
-                <th class="right">Pause</th>
-                <th class="right">Netto</th>
-                <th class="right">Anpassungen</th>
-                <th class="right">Anrechenbar</th>
-                <th class="right">Δ Tag</th>
-                <th>Details</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-          </table>
-        </div>
-
-        <p class="note">Tipp: „Bearbeiten“ lädt den Tag in das Formular.</p>
-      </div>
-    </section>
-  </div>
-
-  <!-- Auth Overlay -->
-  <div class="overlay" id="authOverlay" aria-hidden="true">
-    <div class="dialog" role="dialog" aria-modal="true" aria-label="Login">
-      <div class="dialog__header">
-        <strong>Login</strong>
-        <button class="btn" id="authCloseBtn" type="button" title="Schließen">Schließen</button>
-      </div>
-      <div class="dialog__body">
-        <div class="tabs">
-          <button class="tab active" id="tabLogin" type="button">Login</button>
-          <button class="tab" id="tabRegister" type="button">Registrieren</button>
-        </div>
-
-        <div id="loginPane">
-          <div class="row cols-2">
-            <div>
-              <label for="loginUser">Benutzername</label>
-              <input id="loginUser" autocomplete="username" />
-            </div>
-            <div>
-              <label for="loginPw">Passwort</label>
-              <input id="loginPw" type="password" autocomplete="current-password" />
-            </div>
-          </div>
-          <div class="btns">
-            <button class="btn btn--emphasized" id="loginBtn" type="button">Anmelden</button>
-          </div>
-          <div class="error" id="loginErr"></div>
-          <p class="mini">
-            Hinweis: Das ist ein lokales Login (Browser). Für echte Nutzerkonten über mehrere Geräte ist ein Backend nötig.
-          </p>
-        </div>
-
-        <div id="registerPane" style="display:none;">
-          <div class="row cols-3">
-            <div>
-              <label for="regUser">Benutzername</label>
-              <input id="regUser" autocomplete="username" placeholder="z. B. max" />
-            </div>
-            <div>
-              <label for="regName">Anzeigename</label>
-              <input id="regName" placeholder="z. B. Max Mustermann" />
-            </div>
-            <div>
-              <label for="regPw">Passwort</label>
-              <input id="regPw" type="password" autocomplete="new-password" />
-            </div>
-          </div>
-          <div class="btns">
-            <button class="btn btn--emphasized" id="registerBtn" type="button">Account anlegen</button>
-          </div>
-          <div class="error" id="regErr"></div>
-          <div class="ok" id="regOk"></div>
-          <p class="mini">Der erste registrierte Benutzer wird automatisch als Admin markiert.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- User Mgmt Dialog -->
-  <div class="overlay" id="userMgmtOverlay" aria-hidden="true">
-    <div class="dialog" role="dialog" aria-modal="true" aria-label="Nutzerverwaltung">
-      <div class="dialog__header">
-        <strong>Nutzerverwaltung</strong>
-        <button class="btn" id="userMgmtCloseBtn" type="button">Schließen</button>
-      </div>
-      <div class="dialog__body">
-        <p class="mini" id="userMgmtHint"></p>
-
-        <div class="card" style="margin: 10px 0 12px;">
-          <div class="card__header">
-            <h2>Benutzer</h2>
-            <p class="hint">Lokal gespeichert</p>
-          </div>
-          <div class="card__body">
-            <div id="usersList" class="row" style="gap:10px; margin:0;"></div>
-          </div>
-        </div>
-
-        <div class="card" id="adminCreateUserCard" style="display:none;">
-          <div class="card__header">
-            <h2>Neuen Benutzer anlegen (Admin)</h2>
-            <p class="hint">Erstellt lokal einen neuen Account</p>
-          </div>
-          <div class="card__body">
-            <div class="row cols-3">
-              <div>
-                <label for="adminNewUser">Benutzername</label>
-                <input id="adminNewUser" />
-              </div>
-              <div>
-                <label for="adminNewName">Anzeigename</label>
-                <input id="adminNewName" />
-              </div>
-              <div>
-                <label for="adminNewPw">Passwort</label>
-                <input id="adminNewPw" type="password" />
-              </div>
-            </div>
-            <div class="btns">
-              <button class="btn btn--emphasized" id="adminCreateUserBtn" type="button">Anlegen</button>
-            </div>
-            <div class="error" id="adminCreateErr"></div>
-            <div class="ok" id="adminCreateOk"></div>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:12px;">
-          <div class="card__header">
-            <h2>Eigenes Passwort ändern</h2>
-            <p class="hint">Aktueller User</p>
-          </div>
-          <div class="card__body">
-            <div class="row cols-3">
-              <div>
-                <label for="pwOld">Altes Passwort</label>
-                <input id="pwOld" type="password" autocomplete="current-password" />
-              </div>
-              <div>
-                <label for="pwNew">Neues Passwort</label>
-                <input id="pwNew" type="password" autocomplete="new-password" />
-              </div>
-              <div>
-                <label for="pwNew2">Neues Passwort (Wdh.)</label>
-                <input id="pwNew2" type="password" autocomplete="new-password" />
-              </div>
-            </div>
-            <div class="btns">
-              <button class="btn btn--emphasized" id="pwChangeBtn" type="button">Ändern</button>
-            </div>
-            <div class="error" id="pwErr"></div>
-            <div class="ok" id="pwOk"></div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
 <script>
 (() => {
-  /* ----------------------------
-     STORAGE KEYS
-     ---------------------------- */
   const USERS_KEY   = "wt_users_v1";
   const SESSION_KEY = "wt_session_v1";
-  const DATA_KEY    = "wt_data_v2"; // entries pro User
+  const DATA_KEY    = "wt_data_v2";
 
-  /* ----------------------------
-     DOM helpers
-     ---------------------------- */
+  const GAS_CONFIG = {
+    webAppUrl: "https://script.google.com/macros/s/AKfycbyWO1pgioslpKiT-83WgJZ4LRUdq8npgdP0R6Id0fkRt_9_ofd4mTx9BVXOtBvjPrHeCA/exec",
+    apiKey: ""
+  };
+
+  const REMOTE_TIMEOUT_MS = 20000;
+
   const $ = (id) => document.getElementById(id);
 
-  /* ----------------------------
-     Date/time helpers
-     ---------------------------- */
   function todayISO() {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -881,7 +48,7 @@
   }
   function isoWeekStart(dateISO) {
     const d = new Date(dateISO + "T00:00:00");
-    const day = d.getDay(); // 0=Sun..6=Sat
+    const day = d.getDay();
     const diffToMon = (day === 0 ? -6 : 1) - day;
     d.setDate(d.getDate() + diffToMon);
     d.setHours(0,0,0,0);
@@ -916,10 +83,57 @@
     a.remove();
     URL.revokeObjectURL(url);
   }
+  function newId() {
+    return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(3);
+  }
+  function normalizeUsername(u) {
+    return (u || "").trim().toLowerCase();
+  }
+  function validateUsername(u) {
+    return /^[a-z0-9._-]{3,24}$/.test(u);
+  }
+  function normalizeAdjustment(a = {}) {
+    return {
+      id: a.id || newId(),
+      sign: a.sign === "-" ? "-" : "+",
+      minutes: Math.max(0, Math.round(clampNum(a.minutes, 0))),
+      category: a.category || "Sonstiges",
+      note: (a.note || "").trim()
+    };
+  }
+  function normalizeEntry(e = {}) {
+    return {
+      id: e.id || newId(),
+      date: e.date || "",
+      start: e.start || "",
+      end: e.end || "",
+      breakMin: Math.max(0, Math.round(clampNum(e.breakMin, 0))),
+      dailyTargetH: clampNum(e.dailyTargetH, 8),
+      weeklyTargetH: clampNum(e.weeklyTargetH, 40),
+      note: (e.note || "").trim(),
+      adjustments: Array.isArray(e.adjustments) ? e.adjustments.map(normalizeAdjustment) : [],
+      updatedAt: e.updatedAt || "",
+      createdAt: e.createdAt || ""
+    };
+  }
+  function updatedNow(entry) {
+    return normalizeEntry({ ...entry, updatedAt: new Date().toISOString() });
+  }
+  function pickNewerEntry(a, b) {
+    const ta = Date.parse(a?.updatedAt || "") || 0;
+    const tb = Date.parse(b?.updatedAt || "") || 0;
+    return tb >= ta ? normalizeEntry(b) : normalizeEntry(a);
+  }
+  function mergeEntries(localEntries, remoteEntries) {
+    const map = new Map();
+    [...(localEntries || []), ...(remoteEntries || [])].forEach(entry => {
+      const normalized = normalizeEntry(entry);
+      const existing = map.get(normalized.id);
+      map.set(normalized.id, existing ? pickNewerEntry(existing, normalized) : normalized);
+    });
+    return Array.from(map.values()).sort((a,b) => (a.date || "").localeCompare(b.date || ""));
+  }
 
-  /* ----------------------------
-     Users: WebCrypto PBKDF2
-     ---------------------------- */
   function b64enc(bytes) {
     let bin = "";
     bytes.forEach(b => bin += String.fromCharCode(b));
@@ -983,16 +197,6 @@
   }
   function clearSession() {
     localStorage.removeItem(SESSION_KEY);
-  }
-  function newId() {
-    return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(3);
-  }
-  function normalizeUsername(u) {
-    return (u || "").trim().toLowerCase();
-  }
-  function validateUsername(u) {
-    // 3..24, a-z 0-9 . _ -
-    return /^[a-z0-9._-]{3,24}$/.test(u);
   }
 
   async function registerUser(usernameRaw, displayNameRaw, password) {
@@ -1082,15 +286,11 @@
     store.users = store.users.filter(u => u.id !== targetUserId);
     saveUsers(store);
 
-    // optional: User-Daten ebenfalls entfernen
     const data = loadAppData();
     delete data.entriesByUserId[targetUserId];
     saveAppData(data);
   }
 
-  /* ----------------------------
-     App data per user
-     ---------------------------- */
   function loadAppData() {
     try{
       const raw = localStorage.getItem(DATA_KEY);
@@ -1105,23 +305,123 @@
     localStorage.setItem(DATA_KEY, JSON.stringify(obj));
   }
 
-  let currentUser = null;     // user record
-  let selectedEntryId = null; // entry id within current user
+  let currentUser = null;
+  let selectedEntryId = null;
 
   function getEntriesForUser(userId) {
     const data = loadAppData();
-    return data.entriesByUserId[userId] || [];
+    return (data.entriesByUserId[userId] || []).map(normalizeEntry);
   }
   function setEntriesForUser(userId, entries) {
     const data = loadAppData();
     if (!data.entriesByUserId) data.entriesByUserId = {};
-    data.entriesByUserId[userId] = entries;
+    data.entriesByUserId[userId] = (entries || []).map(normalizeEntry);
     saveAppData(data);
   }
 
-  /* ----------------------------
-     Adjustments UI
-     ---------------------------- */
+  function isRemoteConfigured() {
+    return !!(GAS_CONFIG.webAppUrl && !String(GAS_CONFIG.webAppUrl).includes("PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEBAPP_URL_HERE"));
+  }
+
+  function setSyncState(text) {
+    $("syncState").textContent = text;
+  }
+
+  async function callAppsScript(action, payload = {}) {
+    if (!isRemoteConfigured()) {
+      throw new Error("Apps-Script-Web-App-URL ist nicht gesetzt.");
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REMOTE_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(GAS_CONFIG.webAppUrl, {
+        method: "POST",
+        redirect: "follow",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify({ action, apiKey: GAS_CONFIG.apiKey || "", ...payload }),
+        signal: controller.signal
+      });
+
+      const text = await response.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        throw new Error("Ungültige Antwort vom Apps Script.");
+      }
+
+      if (!response.ok || json.ok === false) {
+        throw new Error(json.error || `HTTP ${response.status}`);
+      }
+
+      return json;
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        throw new Error("Timeout beim Zugriff auf Apps Script.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function loadEntriesFromRemote() {
+    if (!currentUser) return [];
+    const json = await callAppsScript("listEntries", {
+      username: currentUser.username
+    });
+    return Array.isArray(json.entries) ? json.entries.map(normalizeEntry) : [];
+  }
+
+  async function saveEntryToRemote(entry) {
+    if (!currentUser) throw new Error("Kein User aktiv.");
+    const json = await callAppsScript("upsertEntry", {
+      username: currentUser.username,
+      displayName: currentUser.displayName || currentUser.username,
+      entry: normalizeEntry(entry)
+    });
+    return normalizeEntry(json.entry || entry);
+  }
+
+  async function bulkUpsertEntriesToRemote(entries) {
+    if (!currentUser) throw new Error("Kein User aktiv.");
+    await callAppsScript("bulkUpsertEntries", {
+      username: currentUser.username,
+      displayName: currentUser.displayName || currentUser.username,
+      entries: (entries || []).map(normalizeEntry)
+    });
+  }
+
+  async function deleteEntryFromRemote(entryId) {
+    if (!currentUser) throw new Error("Kein User aktiv.");
+    await callAppsScript("deleteEntry", {
+      username: currentUser.username,
+      entryId
+    });
+  }
+
+  async function deleteAllEntriesForUsernameRemote(username) {
+    if (!username || !isRemoteConfigured()) return;
+    await callAppsScript("deleteAllEntriesForUser", { username });
+  }
+
+  async function syncLocalAndRemoteEntries() {
+    if (!currentUser || !isRemoteConfigured()) return;
+    setSyncState("Sheets-Sync: lade Daten …");
+    const localEntries = getEntriesForUser(currentUser.id);
+    const remoteEntries = await loadEntriesFromRemote();
+    const mergedEntries = mergeEntries(localEntries, remoteEntries);
+    setEntriesForUser(currentUser.id, mergedEntries);
+    if (mergedEntries.length) {
+      await bulkUpsertEntriesToRemote(mergedEntries);
+    }
+    setSyncState(`Sheets-Sync: aktiv (${currentUser.username})`);
+  }
+
   function adjRowTemplate(adj) {
     const id = adj.id;
     const wrap = document.createElement("div");
@@ -1195,9 +495,6 @@
     (adjs || []).forEach(a => $("adjList").appendChild(adjRowTemplate(a)));
   }
 
-  /* ----------------------------
-     Calculations
-     ---------------------------- */
   function compute(entryLike) {
     const startMin = parseHHMM(entryLike.start);
     const endMinRaw = parseHHMM(entryLike.end);
@@ -1229,7 +526,7 @@
 
     if (startMin != null && endMinRaw != null) {
       let endMin = endMinRaw;
-      if (endMin < startMin) endMin += 24 * 60; // Nachtschicht
+      if (endMin < startMin) endMin += 24 * 60;
       presence = endMin - startMin;
       net = Math.max(0, presence - breakMin);
     }
@@ -1247,9 +544,6 @@
     return { dailyTargetMin, presence, net, adjSaldo, absenceCredit, otherAdj, credit, diff, predEnd };
   }
 
-  /* ----------------------------
-     Form
-     ---------------------------- */
   function getForm() {
     return {
       date: $("date").value,
@@ -1308,9 +602,6 @@
     renderWeekSummary();
   }
 
-  /* ----------------------------
-     Table & Week Summary (current user only)
-     ---------------------------- */
   function renderEntryDetails(e) {
     const pills = [];
     if (e.note) pills.push(`<span class="pill">Notiz: ${escapeHtml(e.note)}</span>`);
@@ -1408,16 +699,13 @@
     $("kWeekS").textContent = `Woche ${wsISO} bis ${weISO} | Soll: ${fmtDur(weeklyTargetMin)}`;
   }
 
-  /* ----------------------------
-     CRUD entries (current user)
-     ---------------------------- */
-  function upsertEntry() {
+  async function upsertEntry() {
     if (!currentUser) return;
 
     const f = getForm();
     if (!f.date) { alert("Bitte Datum setzen."); return; }
 
-    const entry = {
+    let entry = updatedNow({
       id: selectedEntryId || newId(),
       date: f.date,
       start: f.start || "",
@@ -1427,7 +715,19 @@
       weeklyTargetH: clampNum(f.weeklyTargetH, 40),
       note: f.note || "",
       adjustments: f.adjustments || []
-    };
+    });
+
+    if (isRemoteConfigured()) {
+      try {
+        setSyncState("Sheets-Sync: speichere …");
+        entry = await saveEntryToRemote(entry);
+        setSyncState(`Sheets-Sync: aktiv (${currentUser.username})`);
+      } catch (err) {
+        setSyncState("Sheets-Sync: Fehler");
+        alert("Speichern in Google Sheets fehlgeschlagen:\n" + (err?.message || String(err)));
+        return;
+      }
+    }
 
     const entries = getEntriesForUser(currentUser.id);
     const idx = entries.findIndex(e => e.id === entry.id);
@@ -1442,10 +742,22 @@
     computeAndRenderKPIs();
   }
 
-  function deleteEntry() {
+  async function deleteEntry() {
     if (!currentUser || !selectedEntryId) return;
     const ok = confirm("Eintrag wirklich löschen?");
     if (!ok) return;
+
+    if (isRemoteConfigured()) {
+      try {
+        setSyncState("Sheets-Sync: lösche …");
+        await deleteEntryFromRemote(selectedEntryId);
+        setSyncState(`Sheets-Sync: aktiv (${currentUser.username})`);
+      } catch (err) {
+        setSyncState("Sheets-Sync: Fehler");
+        alert("Löschen in Google Sheets fehlgeschlagen:\n" + (err?.message || String(err)));
+        return;
+      }
+    }
 
     const entries = getEntriesForUser(currentUser.id).filter(e => e.id !== selectedEntryId);
     setEntriesForUser(currentUser.id, entries);
@@ -1455,9 +767,6 @@
     computeAndRenderKPIs();
   }
 
-  /* ----------------------------
-     Export/Import (current user)
-     ---------------------------- */
   function exportJSON() {
     if (!currentUser) return;
     const entries = getEntriesForUser(currentUser.id);
@@ -1473,37 +782,32 @@
   function importJSON(file) {
     if (!currentUser) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const obj = JSON.parse(String(reader.result || ""));
         const entries = Array.isArray(obj?.entries) ? obj.entries : null;
         if (!entries) throw new Error("Ungültiges Format (erwarte { entries: [...] }).");
 
-        const normalized = entries.map(e => ({
-          id: e.id || newId(),
-          date: e.date || "",
-          start: e.start || "",
-          end: e.end || "",
-          breakMin: Math.max(0, Math.round(clampNum(e.breakMin, 0))),
-          dailyTargetH: clampNum(e.dailyTargetH, 8),
-          weeklyTargetH: clampNum(e.weeklyTargetH, 40),
-          note: e.note || "",
-          adjustments: Array.isArray(e.adjustments) ? e.adjustments.map(a => ({
-            id: a.id || newId(),
-            sign: a.sign === "-" ? "-" : "+",
-            minutes: Math.max(0, Math.round(clampNum(a.minutes, 0))),
-            category: a.category || "Sonstiges",
-            note: a.note || ""
-          })) : []
+        const normalized = entries.map(e => normalizeEntry({
+          ...e,
+          updatedAt: e.updatedAt || new Date().toISOString()
         }));
 
         const current = getEntriesForUser(currentUser.id);
-        setEntriesForUser(currentUser.id, [...current, ...normalized]);
+        const merged = mergeEntries(current, normalized);
+        setEntriesForUser(currentUser.id, merged);
+
+        if (isRemoteConfigured()) {
+          setSyncState("Sheets-Sync: importiere …");
+          await bulkUpsertEntriesToRemote(merged);
+          setSyncState(`Sheets-Sync: aktiv (${currentUser.username})`);
+        }
 
         renderTable();
         computeAndRenderKPIs();
-        alert("Import abgeschlossen (in aktuellen User).");
+        alert("Import abgeschlossen.");
       } catch (err) {
+        setSyncState(isRemoteConfigured() ? "Sheets-Sync: Fehler" : "Sheets-Sync: nicht konfiguriert");
         alert("Import fehlgeschlagen: " + (err?.message || String(err)));
       }
     };
@@ -1546,9 +850,6 @@
     download(`arbeitszeit_${currentUser.username}_${todayISO()}.csv`, rows.join("\n"), "text/csv");
   }
 
-  /* ----------------------------
-     Auth UI
-     ---------------------------- */
   function showAuthOverlay(forceOpen=false) {
     const session = loadSession();
     if (forceOpen || !session) {
@@ -1587,7 +888,7 @@
       saveSession(user.id);
       await loadCurrentUserFromSession();
       hideAuthOverlay();
-      afterUserReady();
+      await afterUserReady();
     } catch (e) {
       $("loginErr").textContent = e?.message || String(e);
     }
@@ -1641,12 +942,10 @@
     currentUser = null;
     updateUserButton();
     closeUserMenu();
+    setSyncState(isRemoteConfigured() ? "Sheets-Sync: bereit" : "Sheets-Sync: nicht konfiguriert");
     showAuthOverlay(true);
   }
 
-  /* ----------------------------
-     User management UI
-     ---------------------------- */
   function showUserMgmt() {
     if (!currentUser) return;
     $("userMgmtOverlay").classList.add("show");
@@ -1719,14 +1018,22 @@
     });
 
     list.querySelectorAll("button[data-act='del']").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const targetId = btn.dataset.id;
+        const store = loadUsers();
+        const targetUser = store.users.find(u => u.id === targetId);
         const ok = confirm("Benutzer wirklich löschen? (Daten dieses Users werden ebenfalls entfernt)");
         if (!ok) return;
         try {
+          if (targetUser && isRemoteConfigured()) {
+            setSyncState("Sheets-Sync: entferne User-Daten …");
+            await deleteAllEntriesForUsernameRemote(targetUser.username);
+            setSyncState(`Sheets-Sync: aktiv (${currentUser.username})`);
+          }
           adminDeleteUser(currentUser.id, targetId);
           renderUsersList();
         } catch (e) {
+          setSyncState(isRemoteConfigured() ? "Sheets-Sync: Fehler" : "Sheets-Sync: nicht konfiguriert");
           alert(e?.message || String(e));
         }
       });
@@ -1775,11 +1082,7 @@
     }
   }
 
-  /* ----------------------------
-     Events
-     ---------------------------- */
   function wireEvents() {
-    // live calc
     ["date","start","end","breakMin","dailyTargetH","weeklyTargetH","note"].forEach(id => {
       $(id).addEventListener("input", computeAndRenderKPIs);
       $(id).addEventListener("change", computeAndRenderKPIs);
@@ -1812,17 +1115,14 @@
       e.target.value = "";
     });
 
-    // auth overlay
     $("tabLogin").addEventListener("click", () => setTab("login"));
     $("tabRegister").addEventListener("click", () => setTab("register"));
     $("loginBtn").addEventListener("click", doLogin);
     $("registerBtn").addEventListener("click", doRegister);
     $("authCloseBtn").addEventListener("click", () => {
-      // nur schließen wenn bereits eingeloggt
       if (currentUser) hideAuthOverlay();
     });
 
-    // Enter key for login/register
     ["loginUser","loginPw"].forEach(id => $(id).addEventListener("keydown", (ev) => {
       if (ev.key === "Enter") doLogin();
     }));
@@ -1830,7 +1130,6 @@
       if (ev.key === "Enter") doRegister();
     }));
 
-    // user menu dropdown
     $("userBtn").addEventListener("click", () => toggleUserMenu());
     document.addEventListener("click", (e) => {
       const within = e.target.closest(".dropdown");
@@ -1846,7 +1145,6 @@
     $("changePwBtn").addEventListener("click", () => {
       closeUserMenu();
       showUserMgmt();
-      // Fokus auf Passwortbereich
       setTimeout(() => $("pwOld").focus(), 0);
     });
 
@@ -1855,20 +1153,30 @@
     $("pwChangeBtn").addEventListener("click", changeOwnPw);
   }
 
-  function afterUserReady() {
+  async function afterUserReady() {
     updateUserButton();
 
-    // Init defaults
     $("date").value = todayISO();
     $("weekRef").value = todayISO();
 
     clearForm();
+
+    if (isRemoteConfigured()) {
+      try {
+        await syncLocalAndRemoteEntries();
+      } catch (err) {
+        setSyncState("Sheets-Sync: Fehler");
+        alert("Google-Sheets-Synchronisierung fehlgeschlagen:\n" + (err?.message || String(err)));
+      }
+    } else {
+      setSyncState("Sheets-Sync: nicht konfiguriert");
+    }
+
     renderTable();
     computeAndRenderKPIs();
   }
 
   async function init() {
-    // Basic secure context check for crypto
     if (!window.isSecureContext) {
       alert("Hinweis: Diese App benötigt HTTPS (Secure Context) für Login (WebCrypto). Auf GitHub Pages funktioniert das. Lokal bitte über einen Server starten (nicht file://).");
     }
@@ -1876,12 +1184,11 @@
     wireEvents();
     await loadCurrentUserFromSession();
     updateUserButton();
+    setSyncState(isRemoteConfigured() ? "Sheets-Sync: bereit" : "Sheets-Sync: nicht konfiguriert");
 
     if (!currentUser) {
-      // no session -> open auth
       setTab("login");
       showAuthOverlay(true);
-      // Minimal UI init even without user
       $("date").value = todayISO();
       $("weekRef").value = todayISO();
       clearForm();
@@ -1889,16 +1196,9 @@
     }
 
     hideAuthOverlay();
-    afterUserReady();
+    await afterUserReady();
   }
 
   init();
 })();
-
-
 </script>
-
-</body>
-
-  
-</html>
